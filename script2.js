@@ -22,13 +22,11 @@ window.onclick = () => {
     centerElement("h2");
 }
 
-class cellClass {
+class Cell {
     value;
     color;
     colorMap = new Map();
-    constructor(row, col) {
-        this.row = row;
-        this.col = col;
+    constructor() {
         this.value = 0;
     }
     color() {
@@ -57,35 +55,6 @@ window.onload = () => {
     centerElement("h1");
     centerElement("h2");
 
-    class cellClass {
-        value;
-        color;
-        colorMap = new Map();
-        constructor(row, col) {
-            this.row = row;
-            this.col = col;
-            this.value = 0;
-        }
-        color() {
-            var colorMap = new Map();
-            colorMap.set(0, "#515354");
-            colorMap.set(2, "#4c545c");
-            colorMap.set(4, "#666b70");
-            colorMap.set(8, "#2e423a");
-            colorMap.set(16, "#38805d");
-            colorMap.set(32, "#2d9161");
-            colorMap.set(64, "#0fa65d");
-            colorMap.set(128, "#6d869c");
-            colorMap.set(256, "#52799c");
-            colorMap.set(512, "#4176a3");
-            colorMap.set(1024, "#2d76b5");
-            colorMap.set(2048, "#0e84eb");
-            if (colorMap.has(value)) {
-                color = colorMap.get(value);
-            }
-        }
-    }
-
     var cell = document.getElementsByTagName("cell");
     var background = document.getElementsByTagName("cellBackground");
 
@@ -99,21 +68,25 @@ window.onload = () => {
         }); // gets 04, 05, 06 from the buttons and passes it onto gameBoard()
     }
 
-    var board, backgroundArray = null;
     makeBoard(dimension);
     function makeBoard(dimension) {
+        for(let i = 0; i < cell.length; i++) {
+            cell[i].style.setProperty("display", "none");
+            background[i].style.setProperty("display", "none");
+        }
         let cellCount = 0;
-        board = new Array(dimension);
         for (let row = 0; row < dimension; row++) {
             let temp = new Array(dimension);
             for (let col = 0; col < dimension; col++) {
-                temp[col] =
-                    cellCount++;
+                cell[cellCount] = Cell(row, col);
+                cell[cellCount].style.setProperty("display", "inherit");
+                background[cellCount].style.setProperty("display", "inherit");
+                background[cellCount] = Cell(row, col);
+                cellCount++;
             }
-            board[row] = temp;
         }
-    }
 
+    }
     // Key presses
     var directionMap = new Map();
     directionMap.set("ArrowRight", () => move("right"));
