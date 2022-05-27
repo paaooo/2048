@@ -171,22 +171,20 @@ window.onload = () => {
             }
             return false;
         }
-        let rand1 = null;
-        let rand2 = null;
         while (emptyCells()) { // Checks if there are empty cells available
             // Finds a random cell
-            rand1 = random(dimension);
-            rand2 = random(dimension);
+            let rand1 = random(dimension);
+            let rand2 = random(dimension);
             let generateNumber = () => {
                 if (random(5) === 0) { return 4; } else { return 2; } // returns 2 80% of the time, 4 20% of the time
             }
             if (cellArray[rand1][rand2].zero()) { // Checks if the cell is empty
                 cellArray[rand1][rand2].value = generateNumber(); // generateNumber() adds 2 or 4 to random cell found
+                displayCell(cellArray[rand1][rand2]);
                 break;
             }
 
         }
-        displayCell(cellArray[rand1][rand2]);
     }
 
     function displayCell(cell) { // individually displays cells
