@@ -67,7 +67,7 @@ Buttons {
     position: absolute;
     display: grid;
     grid-template-columns: auto;
-    row-gap: 50px;
+    row-gap: 30px;
     left: -150px;
 }
 Reset, Dimension {

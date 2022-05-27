@@ -26,7 +26,7 @@ class Cell {
     count;
 
     value;
-    merge; //
+    merge; // stops already merged cells from merging
     constructor(row, col, count) {
         this.row = row;
         this.col = col;
@@ -84,7 +84,7 @@ window.onload = () => {
 
     for (let i = 0; i < dimensionButton.length; i++) {
         dimensionButton[i].addEventListener("click", () => {
-            dimension = parseInt(dimensionButton[i].id);
+            dimension = parseInt(dimensionButton[i].id); // sets the dimension for the board
             makeBoard(dimension);
         }); // gets 04, 05, 06 from the buttons and passes it onto gameBoard()
     }
@@ -156,7 +156,7 @@ window.onload = () => {
             displayArray[cellArray[mid + 1][mid].count].innerText = "I";
             displayArray[cellArray[mid + 1][mid + 1].count].innerText = "N";
             displayArray[cellArray[mid + 1][mid + 2].count].innerText = "!";
-            cellArray[0][0].value = 2048; // keeps 2048 on the board until reset
+            cellArray[0][0].value = 2048; // keeps win screen on the board until reset
             won = true;
         }
     }
@@ -189,7 +189,7 @@ window.onload = () => {
         displayCell(cellArray[rand1][rand2]);
     }
 
-    function displayCell(cell) { // individually displays cells; used for animation
+    function displayCell(cell) { // individually displays cells
         displayArray[cell.count].innerText = cell.value;
         displayArray[cell.count].style.setProperty("background-color", cell.color());
         if (cell.validNum()) {
@@ -197,7 +197,6 @@ window.onload = () => {
         }
     }
 
-    // display();
     function display() { // displays all the cells' values onto the cell's text
         for (let i = 0; i < dimension * dimension; i++) {
             let cell = findCount(i);
@@ -216,7 +215,7 @@ window.onload = () => {
         }
     }
 
-    function resetMerge() {
+    function resetMerge() { // resets cells used for merge so they can merge again
         for (let i = 0; i < dimension * dimension; i++) {
             let cell = findCount(i);
             cell.merge = true;
@@ -229,14 +228,14 @@ window.onload = () => {
     }
 
     function merge(cell, direction) {
-        let moved = false;
+        let moved = false; // to recognize merging as movement
         // if statements check if it's at the edge of the board, if it's the same as the next cell, and if the next cell has already merged
         switch (direction) {
             case "right":
                 if (cell.col != dimension - 1 && cellArray[cell.row][cell.col + 1].value === cell.value && cellArray[cell.row][cell.col + 1].merge) {
                     cellArray[cell.row][cell.col + 1].double();
                     cellArray[cell.row][cell.col + 1].merge = false; // turns off merging for next cells
-                    cell.makeZero();
+                    cell.makeZero(); // makes cell "moved" into 0
                     moved = true;
                     updateScore(cellArray[cell.row][cell.col + 1].value);
                 }
@@ -245,7 +244,7 @@ window.onload = () => {
                 if (cell.col != 0 && cellArray[cell.row][cell.col - 1].value === cell.value && cellArray[cell.row][cell.col - 1].merge) {
                     cellArray[cell.row][cell.col - 1].double();
                     cellArray[cell.row][cell.col - 1].merge = false; // turns off merging for next cells
-                    cell.makeZero();
+                    cell.makeZero(); // makes cell "moved" into 0
                     moved = true;
                     updateScore(cellArray[cell.row][cell.col - 1].value);
                 }
@@ -254,7 +253,7 @@ window.onload = () => {
                 if (cell.row != 0 && cellArray[cell.row - 1][cell.col].value === cell.value && cellArray[cell.row - 1][cell.col].merge) {
                     cellArray[cell.row - 1][cell.col].double();
                     cellArray[cell.row - 1][cell.col].merge = false; // turns off merging for next cells
-                    cell.makeZero();
+                    cell.makeZero(); // makes cell "moved" into 0
                     moved = true;
                     updateScore(cellArray[cell.row - 1][cell.col].value);
                 }
@@ -263,7 +262,7 @@ window.onload = () => {
                 if (cell.row != dimension - 1 && cellArray[cell.row + 1][cell.col].value === cell.value && cellArray[cell.row + 1][cell.col].merge) {
                     cellArray[cell.row + 1][cell.col].double();
                     cellArray[cell.row + 1][cell.col].merge = false; // turns off merging for next cells
-                    cell.makeZero();
+                    cell.makeZero(); // makes cell "moved" into 0
                     moved = true;
                     updateScore(cellArray[cell.row + 1][cell.col].value);
                 }
@@ -276,15 +275,15 @@ window.onload = () => {
 
     // Move function
     function move(direction) {
-        let movement = 0;
+        let movement = 0; // to keep track if something actually moved with the input
         switch (direction) {
             case "up":
                 for (let row = 1; row < dimension; row++) { // goes downwards
                     for (let col = 0; col < dimension; col++) {
-                        if (!cellArray[row][col].zero()) {
+                        if (!cellArray[row][col].zero()) { // skips zeroes
                             let rowMoved = row; // keeps track of the cell being moved
-                            let jumpCount = 0;
-                            while (rowMoved != 0 && cellArray[rowMoved - 1][col].zero()) {
+                            let jumpCount = 0; // keepts track of how many times the cell moved
+                            while (rowMoved != 0 && cellArray[rowMoved - 1][col].zero()) { // "moves" each cell to where it's not empty
                                 cellArray[rowMoved - 1][col].value = cellArray[rowMoved][col].value;
                                 cellArray[rowMoved][col].makeZero();
                                 rowMoved--;
@@ -304,10 +303,10 @@ window.onload = () => {
             case "down":
                 for (let row = dimension - 2; row >= 0; row--) { // goes upwards
                     for (let col = 0; col < dimension; col++) {
-                        if (!cellArray[row][col].zero()) {
+                        if (!cellArray[row][col].zero()) { // skips zeroes
                             let rowMoved = row; // keeps track of the cell being moved
-                            let jumpCount = 0;
-                            while (rowMoved != dimension - 1 && cellArray[rowMoved + 1][col].zero()) {
+                            let jumpCount = 0; // keepts track of how many times the cell moved
+                            while (rowMoved != dimension - 1 && cellArray[rowMoved + 1][col].zero()) { // "moves" each cell to where it's not empty
                                 cellArray[rowMoved + 1][col].value = cellArray[rowMoved][col].value;
                                 cellArray[rowMoved][col].makeZero();
                                 rowMoved++;
@@ -327,10 +326,10 @@ window.onload = () => {
             case "left":
                 for (let row = 0; row < dimension; row++) {
                     for (let col = 1; col < dimension; col++) { // goes left to right
-                        if (!cellArray[row][col].zero()) {
+                        if (!cellArray[row][col].zero()) { // skips zeroes
                             let colMoved = col;
-                            let jumpCount = 0;
-                            while (colMoved != 0 && cellArray[row][colMoved - 1].zero()) {
+                            let jumpCount = 0; // keepts track of how many times the cell moved
+                            while (colMoved != 0 && cellArray[row][colMoved - 1].zero()) { // "moves" each cell to where it's not empty
                                 cellArray[row][colMoved - 1].value = cellArray[row][colMoved].value;
                                 cellArray[row][colMoved].makeZero();
                                 colMoved--;
@@ -350,10 +349,10 @@ window.onload = () => {
             case "right":
                 for (let row = 0; row < dimension; row++) {
                     for (let col = dimension - 2; col >= 0; col--) { // goes right to left
-                        if (!cellArray[row][col].zero()) {
+                        if (!cellArray[row][col].zero()) { // skips zeroes
                             let colMoved = col;
-                            let jumpCount = 0;
-                            while (colMoved != dimension - 1 && cellArray[row][colMoved + 1].zero()) {
+                            let jumpCount = 0; // keepts track of how many times the cell moved
+                            while (colMoved != dimension - 1 && cellArray[row][colMoved + 1].zero()) { // "moves" each cell to where it's not empty
                                 cellArray[row][colMoved + 1].value = cellArray[row][colMoved].value;
                                 cellArray[row][colMoved].makeZero();
                                 colMoved++;
@@ -374,12 +373,12 @@ window.onload = () => {
                 break;
         }
         // timeout finishes after animation
-        setTimeout(() => {if (movement > 0) { randomCell(); }}, 55); //keeps track if any cell moved at all (to prevent adding a random cell when a key is pressed but nothing moved)
+        setTimeout(() => {if (movement > 0) { randomCell(); }}, 55); // spawns a random cell if a movement happened
         resetMerge();
     }
 
     function animate(cell, jumpCount, direction, cellEnd) {
-        if (!won) {
+        if (!won) { // turns off animations when user won
             let pos = 2 * jumpCount; // position and velocity
             if (direction == 'left' || direction == 'up') { // makes pos negative so it goes the opposite way based on direction
                 pos *= -1;
@@ -388,11 +387,13 @@ window.onload = () => {
             let finalPos = (106 * jumpCount); // final position
             let stop = () => { // runs when the cell reaches its final position
                 if (Math.abs(pos) >= finalPos) {
+                    // resets after animation
                     displayArray[cell.count].style.setProperty("z-index", "1");
                     clearInterval(animation);
                     displayArray[cell.count].style.top = "0px"
                     displayArray[cell.count].style.left = "0px"
                     moving = false;
+                    // displaying cells' actual values after animation
                     displayCell(cell);
                     displayCell(cellEnd);
                 }
@@ -406,7 +407,7 @@ window.onload = () => {
                     animation = setInterval(() => {
                         displayArray[cell.count].style.top = pos + 'px';
                         pos += move;
-                        moving = true;
+                        moving = true; // turns off movement when animation is happening
                         stop(); //stops the cell at its final position
                     }, 1)
                     break;
@@ -415,7 +416,7 @@ window.onload = () => {
                     animation = setInterval(() => {
                         displayArray[cell.count].style.left = pos + 'px';
                         pos += move;
-                        moving = true;
+                        moving = true; // turns off movement when animation is happening
                         stop();// stops cell at its final position
                     }, 1)
                     break;
@@ -436,7 +437,7 @@ window.onload = () => {
     directionMap.set("ArrowDown", () => move("down"));
     directionMap.set("KeyS", () => move("down"));
     window.addEventListener("keydown", (event) => {
-        if (directionMap.has(event.code) && !moving) {
+        if (directionMap.has(event.code) && !moving) { // turns off movement when animation is happening
             event.preventDefault();
             directionMap.get(event.code)();
         }
