@@ -7,198 +7,365 @@ function centerElement(element) {
     tag.style.left = marginX + "px";
 }
 
-window.onresize = () => {
+function center() {
     centerElement("Game");
     centerElement("Score");
     centerElement("h1");
     centerElement("h2");
 }
 
-window.onclick = () => {
-    centerElement("Game");
-    centerElement("Score");
-    centerElement("h1");
-    centerElement("h2");
+function random(int) { // generates random number based on parameter
+    return Math.floor(Math.random() * int);
 }
 
-window.onload = function () {
-    // putting cells into 2d array
-    var cellArray, backgroundArray = [[], [], [], []]; // Default 4x4
-    var cell = document.getElementsByTagName("cell");
-    var background = document.getElementsByTagName("cellBackground");
-    var score = document.getElementsByTagName("Score")[0];
+class Cell {
+    // 2d
+    row;
+    col;
+    // 1d
+    count;
+
+    value;
+    merge; //
+    constructor(row, col, count) {
+        this.row = row;
+        this.col = col;
+        this.count = count;
+        this.value = 0;
+        this.merge = true;
+    }
+    color() {
+        var colorMap = new Map();
+        colorMap.set(0, "#515354");
+        colorMap.set(2, "#4c545c");
+        colorMap.set(4, "#666b70");
+        colorMap.set(8, "#2e423a");
+        colorMap.set(16, "#38805d");
+        colorMap.set(32, "#2d9161");
+        colorMap.set(64, "#0fa65d");
+        colorMap.set(128, "#6d869c");
+        colorMap.set(256, "#52799c");
+        colorMap.set(512, "#4176a3");
+        colorMap.set(1024, "#2d76b5");
+        colorMap.set(2048, "#0e84eb");
+        if (colorMap.has(this.value)) {
+            return colorMap.get(this.value);
+        } else {
+            var colorKeys = Array.from(colorMap.keys()); // sets the keys to an array
+            return colorMap.get(colorKeys[random(colorKeys.length)]); // returns random colors to other values
+            // used for win screen to be colorful
+        }
+    }
+    makeZero() { // makes the cell value into 0; for mergin/resetting
+        this.value = 0;
+    }
+    zero() {
+        return this.value === 0;
+    }
+    double() { // doubles the value of the cell; for merging
+        this.value *= 2;
+    }
+    validNum() {
+        let nums = [2, 4, 6, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+        return (nums.indexOf(this.value) === -1);
+    }
+}
+
+window.onload = () => {
+    var cellArray = null; // 2d array of every active cell
+    var displayArray = document.getElementsByTagName("cell"); // only used for displaying innerText
+    var background = document.getElementsByTagName("cellBackground"); // default background behind cells
+    var game = document.getElementsByTagName("Game")[0]; // game element (the board)
+    var dimension = 4; // for makeBoard() and randomCell(); Default: 4
+    var dimensionButton = document.getElementsByTagName("Dimension"); // 4x4, 5x5, 6x6 buttons
     var currentScore = 0;
-    var boardDimension = 4; // for gameBoard() and randomCell(); Default: 4
+    var won = false; // to stop animate function when the user won
+    var moving = false; // top stop inputs when the board's animating
 
-    var gameMap = new Map();
-    // cellArray changes the 2d array that takes in the cells so it's able to handle 5x5 or 6x6
-    // setProperty changes the grid-template column
-    var game = document.getElementsByTagName("Game")[0];
-    gameMap.set(4, () => { cellArray = [[], [], [], []]; backgroundArray = [[], [], [], []]; game.style.setProperty("grid-template-columns", "auto auto auto auto"); }); // 4 x 4
-    gameMap.set(5, () => { cellArray = [[], [], [], [], []]; backgroundArray = [[], [], [], [], []]; game.style.setProperty("grid-template-columns", "auto auto auto auto auto"); }); // 5 x 5
-    gameMap.set(6, () => { cellArray = [[], [], [], [], [], []]; backgroundArray = [[], [], [], [], [], []]; game.style.setProperty("grid-template-columns", "auto auto auto auto auto auto"); }); // 6 x 6
-
-    var dimensionButton = document.getElementsByTagName("Dimension");
     for (let i = 0; i < dimensionButton.length; i++) {
-        dimensionButton[i].addEventListener("click", () => { gameBoard(parseInt(dimensionButton[i].id)) }); // gets 04, 05, 06 from the buttons and passes it onto gameBoard()
+        dimensionButton[i].addEventListener("click", () => {
+            dimension = parseInt(dimensionButton[i].id);
+            makeBoard(dimension);
+        }); // gets 04, 05, 06 from the buttons and passes it onto gameBoard()
+    }
+
+    makeBoard(dimension);
+    function makeBoard(dimension) {
+        for (let i = 0; i < displayArray.length; i++) { // Resets / Deletes board
+            displayArray[i].style.setProperty("display", "none");
+            background[i].style.setProperty("display", "none");
+        }
+
+        let cellCount = 0;
+        cellArray = new Array(dimension);
+        for (let row = 0; row < dimension; row++) { // Makes new board
+            let tempArray = new Array(dimension);
+            for (let col = 0; col < dimension; col++) {
+                tempArray[col] = new Cell(row, col, cellCount); // Sets cells into a 2d array
+                displayArray[cellCount].style.setProperty("display", "inherit"); // Makes the cells being used visible
+                background[cellCount].style.setProperty("display", "inherit");
+                cellCount++;
+            }
+            cellArray[row] = tempArray;
+        }
+        game.style.setProperty("grid-template-columns", "auto ".repeat(dimension)); // Sets grid template to match dimensions
+
+        startGame();
+        center();
+    }
+
+    function startGame() {
+        for (let i = 0; i < dimension * dimension; i++) { // Resets the board
+            let cell = findCount(i);
+            cell.makeZero(); // sets all cell value to be 0
+        }
+        won = false;
+        currentScore = 0;
+        updateScore(0);
+        randomCell();
+        randomCell();
+        // cellArray[0][0].value = 1024;
+        // cellArray[0][1].value = 1024;
+        display();
     }
 
     document.getElementsByTagName("Reset")[0].addEventListener("click", function () { startGame(); }); // Reset button
 
-    function gameBoard(dimension) { // changes the dimension of the board
-        boardDimension = dimension;
-        // console.log(boardDimension);
-        gameMap.get(dimension)(); // sets grid and 2d array
-
-        for (let i = 0; i < cell.length; i++) { // resets the gameboard to dis  playing nothing
-            cell[i].style.setProperty("display", "none");
-            background[i].style.setProperty("display", "none");
-        }
-        let cellCount = 0;
-        for (let row = 0; row < dimension; row++) { // sets cells into a 2d array: 4x4 by default
-            for (let col = 0; col < dimension; col++) {
-                cellArray[row][col] = cell[cellCount];
-                cell[cellCount].style.setProperty("display", "inherit"); // makes display of each cell in the board grid
-                backgroundArray[row][col] = background[cellCount];
-                background[cellCount].style.setProperty("display", "inherit");
-                cellCount++;
+    function win() {
+        let check = false;
+        for (let i = 0; i < dimension * dimension; i++) {
+            let cell = findCount(i);
+            if (cell.value === 2048) {
+                check = true;
             }
         }
-        startGame(); // sets the board by default
-        // cellArray[0][1].innerText = "1024";
-        // cellArray[0][0].innerText = "1024";
-        // keeping the game and the score at the center of the screen
-        centerElement("Game");
-        centerElement("Score");
-        centerElement("h1");
-        centerElement("h2");
+
+        if (check) {
+            for (let i = 0; i < dimension * dimension; i++) {
+                let cell = findCount(i);
+                // resets all values to random numbers for colorful winscreen
+                cell.value = random(10) + Math.random();
+            }
+            display();
+            //win message
+            let mid = Math.ceil(dimension / 2) - 1;
+            displayArray[cellArray[mid][mid - 1].count].innerText = "Y";
+            displayArray[cellArray[mid][mid].count].innerText = "O";
+            displayArray[cellArray[mid][mid + 1].count].innerText = "U";
+            displayArray[cellArray[mid + 1][mid - 1].count].innerText = "W";
+            displayArray[cellArray[mid + 1][mid].count].innerText = "I";
+            displayArray[cellArray[mid + 1][mid + 1].count].innerText = "N";
+            displayArray[cellArray[mid + 1][mid + 2].count].innerText = "!";
+            cellArray[0][0].value = 2048; // keeps 2048 on the board until reset
+            won = true;
+        }
     }
 
-    // returns if there's still cells that are empty
-    function emptyCells() {
-        for (let row = 0; row < cellArray.length; row++) {
-            for (let col = 0; col < cellArray[row].length; col++) {
-                if (cellArray[row][col].innerText == "") {
+    function randomCell() { // Finds a random empty cell in the board
+        let emptyCells = () => {
+            for (let i = 0; i < dimension * dimension; i++) {
+                let cell = findCount(i);
+                if (cell.zero()) {
                     return true;
                 }
             }
+            return false;
         }
-        return false;
-    }
-
-    function random(int) { // generates random number depending on parameter
-        return Math.floor(Math.random() * int);
-    }
-
-    function randomCell() { // finds a random cell in the board
-        while (emptyCells()) {
-            let rand1 = random(boardDimension);
-            let rand2 = random(boardDimension);
-            if (cellArray[rand1][rand2].innerText == "") {
-                cellArray[rand1][rand2].innerText = generateNumber(); // generateNumber() adds 2 or 4 to random cell found
+        let rand1 = null;
+        let rand2 = null;
+        while (emptyCells()) { // Checks if there are empty cells available
+            // Finds a random cell
+            rand1 = random(dimension);
+            rand2 = random(dimension);
+            let generateNumber = () => {
+                if (random(5) === 0) { return 4; } else { return 2; } // returns 2 80% of the time, 4 20% of the time
+            }
+            if (cellArray[rand1][rand2].zero()) { // Checks if the cell is empty
+                cellArray[rand1][rand2].value = generateNumber(); // generateNumber() adds 2 or 4 to random cell found
                 break;
+            }
+
+        }
+        displayCell(cellArray[rand1][rand2]);
+    }
+
+    function displayCell(cell) { // individually displays cells; used for animation
+        displayArray[cell.count].innerText = cell.value;
+        displayArray[cell.count].style.setProperty("background-color", cell.color());
+        if (cell.validNum()) {
+            displayArray[cell.count].innerText = "";
+        }
+    }
+
+    // display();
+    function display() { // displays all the cells' values onto the cell's text
+        for (let i = 0; i < dimension * dimension; i++) {
+            let cell = findCount(i);
+            displayCell(cell);
+        }
+    }
+
+    //find functions: has to have different names because retard javascript doesn't support overrides
+    function findCount(count) { // finds specific cell based on count
+        for (let row = 0; row < dimension; row++) {
+            for (let col = 0; col < dimension; col++) {
+                if (cellArray[row][col].count === count) {
+                    return cellArray[row][col];
+                }
             }
         }
     }
 
-    // generates 2 or 4, with 2 being more likely than 4
-    function generateNumber() {
-        if (random(5) == 0) { return 2; } else { return 2; }
+    function resetMerge() {
+        for (let i = 0; i < dimension * dimension; i++) {
+            let cell = findCount(i);
+            cell.merge = true;
+        }
     }
 
-    function updateScore(add) { // adds to score
-        currentScore += add;
-        score.innerText = "Score: " + currentScore;
+    function updateScore(num) {
+        currentScore += num;
+        document.getElementsByTagName("Score")[0].innerText = "Score: " + currentScore;
     }
 
-    // move functions
+    function merge(cell, direction) {
+        let moved = false;
+        // if statements check if it's at the edge of the board, if it's the same as the next cell, and if the next cell has already merged
+        switch (direction) {
+            case "right":
+                if (cell.col != dimension - 1 && cellArray[cell.row][cell.col + 1].value === cell.value && cellArray[cell.row][cell.col + 1].merge) {
+                    cellArray[cell.row][cell.col + 1].double();
+                    cellArray[cell.row][cell.col + 1].merge = false; // turns off merging for next cells
+                    cell.makeZero();
+                    moved = true;
+                    updateScore(cellArray[cell.row][cell.col + 1].value);
+                }
+                break;
+            case "left":
+                if (cell.col != 0 && cellArray[cell.row][cell.col - 1].value === cell.value && cellArray[cell.row][cell.col - 1].merge) {
+                    cellArray[cell.row][cell.col - 1].double();
+                    cellArray[cell.row][cell.col - 1].merge = false; // turns off merging for next cells
+                    cell.makeZero();
+                    moved = true;
+                    updateScore(cellArray[cell.row][cell.col - 1].value);
+                }
+                break;
+            case "up":
+                if (cell.row != 0 && cellArray[cell.row - 1][cell.col].value === cell.value && cellArray[cell.row - 1][cell.col].merge) {
+                    cellArray[cell.row - 1][cell.col].double();
+                    cellArray[cell.row - 1][cell.col].merge = false; // turns off merging for next cells
+                    cell.makeZero();
+                    moved = true;
+                    updateScore(cellArray[cell.row - 1][cell.col].value);
+                }
+                break;
+            case "down":
+                if (cell.row != dimension - 1 && cellArray[cell.row + 1][cell.col].value === cell.value && cellArray[cell.row + 1][cell.col].merge) {
+                    cellArray[cell.row + 1][cell.col].double();
+                    cellArray[cell.row + 1][cell.col].merge = false; // turns off merging for next cells
+                    cell.makeZero();
+                    moved = true;
+                    updateScore(cellArray[cell.row + 1][cell.col].value);
+                }
+                break;
+            default:
+                break;
+        }
+        return moved; // to recognize merging cells as movement
+    }
+
+    // Move function
     function move(direction) {
-        let movement = 0; // to keep track if the gameboard actually moves after the input or if it's just a dead keypress (for purposes of adding a new random cell)
+        let movement = 0;
         switch (direction) {
             case "up":
-                for (let row = 1; row < cellArray.length; row++) { // goes downwards
-                    for (let col = 0; col < cellArray[row].length; col++) {
-                        if (cellArray[row][col].innerText != "") {
-                            let cellMoved = row; //keeps track of the cell being moved
+                for (let row = 1; row < dimension; row++) { // goes downwards
+                    for (let col = 0; col < dimension; col++) {
+                        if (!cellArray[row][col].zero()) {
+                            let rowMoved = row; // keeps track of the cell being moved
                             let jumpCount = 0;
-                            while (cellMoved != 0 && cellArray[cellMoved - 1][col].innerText == "") {
-                                cellArray[cellMoved - 1][col].innerText = cellArray[cellMoved][col].innerText;
-                                cellArray[cellMoved][col].innerText = "";
-                                cellMoved--;
+                            while (rowMoved != 0 && cellArray[rowMoved - 1][col].zero()) {
+                                cellArray[rowMoved - 1][col].value = cellArray[rowMoved][col].value;
+                                cellArray[rowMoved][col].makeZero();
+                                rowMoved--;
                                 movement++;
                                 jumpCount++;
                             }
-                            if (mergeCells(cellMoved, col, direction)) {
+                            if (merge(cellArray[rowMoved][col], direction)) {
+                                rowMoved--;
                                 movement++;
                                 jumpCount++;
                             }
-                            Animate(cellArray[row][col], jumpCount, direction);
+                            animate(cellArray[row][col], jumpCount, direction, cellArray[rowMoved][col]);
                         }
                     }
                 }
                 break;
             case "down":
-                for (let row = cellArray.length - 2; row >= 0; row--) { // goes upwards
-                    for (let col = 0; col < cellArray[row].length; col++) {
-                        if (cellArray[row][col].innerText != "") {
-                            let cellMoved = row; //keeps track of the cell being moved
+                for (let row = dimension - 2; row >= 0; row--) { // goes upwards
+                    for (let col = 0; col < dimension; col++) {
+                        if (!cellArray[row][col].zero()) {
+                            let rowMoved = row; // keeps track of the cell being moved
                             let jumpCount = 0;
-                            while (cellMoved != cellArray.length - 1 && cellArray[cellMoved + 1][col].innerText == "") {
-                                cellArray[cellMoved + 1][col].innerText = cellArray[cellMoved][col].innerText;
-                                cellArray[cellMoved][col].innerText = "";
-                                cellMoved++;
+                            while (rowMoved != dimension - 1 && cellArray[rowMoved + 1][col].zero()) {
+                                cellArray[rowMoved + 1][col].value = cellArray[rowMoved][col].value;
+                                cellArray[rowMoved][col].makeZero();
+                                rowMoved++;
                                 movement++;
                                 jumpCount++;
                             }
-                            if (mergeCells(cellMoved, col, direction)) {
+                            if (merge(cellArray[rowMoved][col], direction)) {
+                                rowMoved++;
                                 movement++;
                                 jumpCount++;
                             }
-                            Animate(cellArray[row][col], jumpCount, direction);
+                            animate(cellArray[row][col], jumpCount, direction, cellArray[rowMoved][col]);
                         }
                     }
                 }
                 break;
             case "left":
-                for (let row = 0; row < cellArray.length; row++) {
-                    for (let col = 1; col < cellArray[row].length; col++) { // goes left to right
-                        if (cellArray[row][col].innerText != "") {
-                            let cellMoved = col; //keeps track of the cell being moved
+                for (let row = 0; row < dimension; row++) {
+                    for (let col = 1; col < dimension; col++) { // goes left to right
+                        if (!cellArray[row][col].zero()) {
+                            let colMoved = col;
                             let jumpCount = 0;
-                            while (cellMoved != 0 && cellArray[row][cellMoved - 1].innerText == "") {
-                                cellArray[row][cellMoved - 1].innerText = cellArray[row][cellMoved].innerText;
-                                cellArray[row][cellMoved].innerText = "";
-                                cellMoved--;
+                            while (colMoved != 0 && cellArray[row][colMoved - 1].zero()) {
+                                cellArray[row][colMoved - 1].value = cellArray[row][colMoved].value;
+                                cellArray[row][colMoved].makeZero();
+                                colMoved--;
                                 movement++;
                                 jumpCount++;
                             }
-                            if (mergeCells(row, cellMoved, direction)) {
+                            if (merge(cellArray[row][colMoved], direction)) {
+                                colMoved--;
                                 movement++;
                                 jumpCount++;
                             }
-                            Animate(cellArray[row][col], jumpCount, direction);
+                            animate(cellArray[row][col], jumpCount, direction, cellArray[row][colMoved]);
                         }
                     }
                 }
                 break;
             case "right":
-                for (let row = 0; row < cellArray.length; row++) {
-                    for (let col = cellArray[row].length - 2; col >= 0; col--) { // goes right to left
-                        if (cellArray[row][col].innerText != "") {
-                            let cellMoved = col; //keeps track of the cell being moved
+                for (let row = 0; row < dimension; row++) {
+                    for (let col = dimension - 2; col >= 0; col--) { // goes right to left
+                        if (!cellArray[row][col].zero()) {
+                            let colMoved = col;
                             let jumpCount = 0;
-                            while (cellMoved != cellArray[row].length - 1 && cellArray[row][cellMoved + 1].innerText == "") {
-                                cellArray[row][cellMoved + 1].innerText = cellArray[row][cellMoved].innerText;
-                                cellArray[row][cellMoved].innerText = "";
-                                cellMoved++;
-                                movement++;
-                                jumpCount++
-                            }
-                            if (mergeCells(row, cellMoved, direction)) {
+                            while (colMoved != dimension - 1 && cellArray[row][colMoved + 1].zero()) {
+                                cellArray[row][colMoved + 1].value = cellArray[row][colMoved].value;
+                                cellArray[row][colMoved].makeZero();
+                                colMoved++;
                                 movement++;
                                 jumpCount++;
                             }
-                            Animate(cellArray[row][col], jumpCount, direction);
+                            if (merge(cellArray[row][colMoved], direction)) {
+                                colMoved++;
+                                movement++;
+                                jumpCount++;
+                            }
+                            animate(cellArray[row][col], jumpCount, direction, cellArray[row][colMoved]);
                         }
                     }
                 }
@@ -206,93 +373,55 @@ window.onload = function () {
             default:
                 break;
         }
-        // anim.then(() => color());
-        if (movement > 0) { randomCell(); } //keeps track if any cell moved at all (to prevent adding a random cell when a key is pressed but nothing moved)
-    }
-    // Merges cells together if they have the same string (gets called inside move function)
-    function mergeCells(row, col, direction) {
-        let movement = false; // For the gameboard to recognize merging as movement (for purposes of adding a new random cell)
-        switch (direction) {
-            case "up":
-                if (row !== 0 && cellArray[row - 1][col].innerText == cellArray[row][col].innerText) {
-                    cellArray[row - 1][col].innerText = parseInt(cellArray[row][col].innerText) * 2;
-                    cellArray[row][col].innerText = "";
-                    movement = true;
-                    updateScore(parseInt(cellArray[row - 1][col].innerText));
-                }
-                break;
-            case "down":
-                if (row !== boardDimension - 1 && cellArray[row + 1][col].innerText == cellArray[row][col].innerText) {
-                    cellArray[row + 1][col].innerText = parseInt(cellArray[row][col].innerText) * 2;
-                    cellArray[row][col].innerText = "";
-                    movement = true;
-                    updateScore(parseInt(cellArray[row + 1][col].innerText));
-                }
-                break;
-            case "left":
-                if (col !== 0 && cellArray[row][col - 1].innerText == cellArray[row][col].innerText) {
-                    cellArray[row][col - 1].innerText = parseInt(cellArray[row][col].innerText) * 2;
-                    cellArray[row][col].innerText = "";
-                    movement = true;
-                    updateScore(parseInt(cellArray[row][col - 1].innerText));
-                }
-                break;
-            case "right":
-                if (col !== boardDimension - 1 && cellArray[row][col + 1].innerText == cellArray[row][col].innerText) {
-                    cellArray[row][col + 1].innerText = parseInt(cellArray[row][col].innerText) * 2;
-                    cellArray[row][col].innerText = "";
-                    movement = true;
-                    updateScore(parseInt(cellArray[row][col + 1].innerText));
-                }
-                break;
-            default:
-                break;
-        }
-        return movement; // for move function to recognize a movement
+        // timeout finishes after animation
+        setTimeout(() => {if (movement > 0) { randomCell(); }}, 55); //keeps track if any cell moved at all (to prevent adding a random cell when a key is pressed but nothing moved)
+        resetMerge();
     }
 
-    //Animation
-    function Animate(cellMoved, jumpCount, direction) { // moves background cell instead of actual cell
-        // jumpCount is how far the cell has to move, used for velocity and final position
-        let pos = 4 * jumpCount; // how fast the cell moves, also it's position
-        if (direction == 'left' || direction == 'up') { // makes pos negative so it goes the opposite way based on direction
-            pos *= -1;
-        }
-let count = 0;
-        let move = pos; // used to increment pos
-        let finalPos = (106 * jumpCount); // final position 
-        let stop = () => { // runs when the cell reaches its final position
-            count++
-            console.log(count);
-            if (Math.abs(pos) >= finalPos) {
-                cellMoved.style.setProperty("z-index", "1");
-                clearInterval(animation);
-                cellMoved.style.top = "0px"
-                cellMoved.style.left = "0px"
+    function animate(cell, jumpCount, direction, cellEnd) {
+        if (!won) {
+            let pos = 2 * jumpCount; // position and velocity
+            if (direction == 'left' || direction == 'up') { // makes pos negative so it goes the opposite way based on direction
+                pos *= -1;
             }
-        }
+            let move = pos; // used to increment pos
+            let finalPos = (106 * jumpCount); // final position
+            let stop = () => { // runs when the cell reaches its final position
+                if (Math.abs(pos) >= finalPos) {
+                    displayArray[cell.count].style.setProperty("z-index", "1");
+                    clearInterval(animation);
+                    displayArray[cell.count].style.top = "0px"
+                    displayArray[cell.count].style.left = "0px"
+                    moving = false;
+                    displayCell(cell);
+                    displayCell(cellEnd);
+                }
+            }
 
-        let animation = null;
-        cellMoved.style.setProperty("z-index", "2");
-        switch (direction) {
-            case "down":
-            case "up":
-                animation = setInterval(() => {
-                    cellMoved.style.top = pos + 'px';
-                    pos += move;
-                    stop(); //stops cell at its final position
-                }, 1)
-                break;
-            case "right":
-            case "left":
-                animation = setInterval(() => {
-                    cellMoved.style.left = pos + 'px';
-                    pos += move;
-                    stop();// stops cell at its final position
-                }, 1)
-                break;
-            default:
-                break;
+            let animation = null;
+            displayArray[cell.count].style.setProperty("z-index", "2"); // puts the cell on top of everything
+            switch (direction) {
+                case "down":
+                case "up":
+                    animation = setInterval(() => {
+                        displayArray[cell.count].style.top = pos + 'px';
+                        pos += move;
+                        moving = true;
+                        stop(); //stops the cell at its final position
+                    }, 1)
+                    break;
+                case "right":
+                case "left":
+                    animation = setInterval(() => {
+                        displayArray[cell.count].style.left = pos + 'px';
+                        pos += move;
+                        moving = true;
+                        stop();// stops cell at its final position
+                    }, 1)
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -306,92 +435,14 @@ let count = 0;
     directionMap.set("KeyW", () => move("up"));
     directionMap.set("ArrowDown", () => move("down"));
     directionMap.set("KeyS", () => move("down"));
-
     window.addEventListener("keydown", (event) => {
-        if (directionMap.has(event.code)) {
+        if (directionMap.has(event.code) && !moving) {
             event.preventDefault();
             directionMap.get(event.code)();
         }
-        setTimeout(() => color(), 25);
         win();
-        centerElement("Game");
-        centerElement("Score");
-        centerElement("h1");
-        centerElement("h2");
-
+        center();
     })
-
-    //Color
-    var colorMap = new Map();
-    colorMap.set("", "#515354");
-    colorMap.set("2", "#4c545c");
-    colorMap.set("4", "#666b70");
-    colorMap.set("8", "#2e423a");
-    colorMap.set("16", "#38805d");
-    colorMap.set("32", "#2d9161");
-    colorMap.set("64", "#0fa65d");
-    colorMap.set("128", "#6d869c");
-    colorMap.set("256", "#52799c");
-    colorMap.set("512", "#4176a3");
-    colorMap.set("1024", "#2d76b5");
-    colorMap.set("2048", "#0e84eb");
-    var colorKeys = Array.from(colorMap.keys()); // sets the keys to an array
-    function color() { // changes color of cells depending on number
-        for (let row = 0; row < cellArray.length; row++) {
-            for (let col = 0; col < cellArray[row].length; col++) {
-                let cell = cellArray[row][col];
-                let back = backgroundArray[row][col];
-                if (colorMap.has(cell.innerText)) {
-                    cell.style.setProperty("background-color", colorMap.get(cell.innerText));
-                    back.style.setProperty("background-color", colorMap.get(back.innerText));
-                } else {
-                    cell.style.setProperty("background-color", colorMap.get(colorKeys[random(colorKeys.length)])); // makes a colorful win screen
-                }
-            }
-        }
-    }
-
-    function startGame() { // sets the whole gameboard empty and adds two random numbers on it.
-        for (let i = 0; i < cell.length; i++) {
-            cell[i].innerText = "";
-        }
-        currentScore = 0;
-        updateScore(0);
-        randomCell();
-        randomCell();
-        color();
-    }
-
-    function checkWin() { // checks if any cell has 2048
-        for (let i = 0; i < cell.length; i++) {
-            if (cell[i].innerText == "2048") {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function win() { // Will be executing after every input
-        if (checkWin()) { // prints a win message
-            let randString = [" ", "­", "؜", "឴", " ", " "] // invisible characters
-
-            for (let i = 0; i < cell.length; i++) { //invisible string to make win-screen colorful
-                cell[i].innerText = `${randString[random(6)]}${randString[random(6)]}${randString[random(6)]}${randString[random(6)]}${randString[random(6)]}`; // lower chance of generating NaN when moving
-            }
-
-            let middle = Math.ceil(cellArray.length / 2) - 1;
-            cellArray[middle][middle - 1].innerText = "Y";
-            cellArray[middle][middle].innerText = "O";
-            cellArray[middle][middle + 1].innerText = "U";
-            cellArray[middle + 1][middle - 1].innerText = "W";
-            cellArray[middle + 1][middle].innerText = "I";
-            cellArray[middle + 1][middle + 1].innerText = "N";
-            cellArray[middle + 1][middle + 2].innerText = "!";
-            //for empty cells to get filled up with random strings so they don't combine (for larger gameboards)
-            color();
-        }
-    }
-    gameBoard(boardDimension); // starts the game in a 4x4 by default
-    // backgroundArray[0][0].innerText = "PAO";
-
 }
+
+window.onresize = () => center();
