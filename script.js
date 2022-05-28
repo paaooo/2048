@@ -19,19 +19,19 @@ function random(int) { // generates random number based on parameter
 }
 
 var colorMap = new Map();
-        colorMap.set(0, "#515354");
-        colorMap.set(2, "#4c545c");
-        colorMap.set(4, "#666b70");
-        colorMap.set(8, "#2e423a");
-        colorMap.set(16, "#38805d");
-        colorMap.set(32, "#2d9161");
-        colorMap.set(64, "#0fa65d");
-        colorMap.set(128, "#6d869c");
-        colorMap.set(256, "#52799c");
-        colorMap.set(512, "#4176a3");
-        colorMap.set(1024, "#2d76b5");
-        colorMap.set(2048, "#0e84eb");
-        
+colorMap.set(0, "#515354");
+colorMap.set(2, "#4c545c");
+colorMap.set(4, "#666b70");
+colorMap.set(8, "#2e423a");
+colorMap.set(16, "#38805d");
+colorMap.set(32, "#2d9161");
+colorMap.set(64, "#0fa65d");
+colorMap.set(128, "#6d869c");
+colorMap.set(256, "#52799c");
+colorMap.set(512, "#4176a3");
+colorMap.set(1024, "#2d76b5");
+colorMap.set(2048, "#0e84eb");
+
 class Cell {
     // 2d
     row;
@@ -71,8 +71,14 @@ class Cell {
         return (nums.indexOf(this.value) === -1);
     }
 }
-
 window.onload = () => {
+    // Sounds
+    var sound = {
+        moveSound: new Howl({ src: ['sounds/move.mp3'], volume: 0.7 }),
+        mergeSound: new Howl({ src: ['sounds/merge.mp3'], volume: 0.5 }),
+        winSound: new Howl({ src: ['sounds/win.mp3'] })
+    }
+
     var cellArray = null; // 2d array of every active cell
     var displayArray = document.getElementsByTagName("cell"); // only used for displaying innerText
     var background = document.getElementsByTagName("cellBackground"); // default background behind cells
@@ -149,16 +155,23 @@ window.onload = () => {
             }
             display();
             //win message
-            let mid = Math.ceil(dimension / 2) - 1;
-            displayArray[cellArray[mid][mid - 1].count].innerText = "Y";
-            displayArray[cellArray[mid][mid].count].innerText = "O";
-            displayArray[cellArray[mid][mid + 1].count].innerText = "U";
-            displayArray[cellArray[mid + 1][mid - 1].count].innerText = "W";
-            displayArray[cellArray[mid + 1][mid].count].innerText = "I";
-            displayArray[cellArray[mid + 1][mid + 1].count].innerText = "N";
-            displayArray[cellArray[mid + 1][mid + 2].count].innerText = "!";
-            cellArray[0][0].value = 2048; // keeps win screen on the board until reset
-            won = true;
+            let winMessage = () => {
+                let mid = Math.ceil(dimension / 2) - 1;
+                displayArray[cellArray[mid][mid - 1].count].innerText = "Y";
+                displayArray[cellArray[mid][mid].count].innerText = "O";
+                displayArray[cellArray[mid][mid + 1].count].innerText = "U";
+                displayArray[cellArray[mid + 1][mid - 1].count].innerText = "W";
+                displayArray[cellArray[mid + 1][mid].count].innerText = "I";
+                displayArray[cellArray[mid + 1][mid + 1].count].innerText = "N";
+                displayArray[cellArray[mid + 1][mid + 2].count].innerText = "!";
+                cellArray[0][0].value = 2048; // keeps win screen on the board until reset 
+            }
+            winMessage();
+            if (!won) {
+                setTimeout(() => winMessage(), 210); // redesplays win message after last animation
+                sound.winSound.play(); // plays mergeSound once when the player wins until player resets
+                won = true;
+            }
         }
     }
 
@@ -275,6 +288,7 @@ window.onload = () => {
     // Move function
     function move(direction) {
         let movement = 0; // to keep track if something actually moved with the input
+        let merged = 0; // to keep track if a cell has merged (to play sound once later)
         switch (direction) {
             case "up":
                 for (let row = 1; row < dimension; row++) { // goes downwards
@@ -293,6 +307,7 @@ window.onload = () => {
                                 rowMoved--;
                                 movement++;
                                 jumpCount++;
+                                merged++;
                             }
                             animate(cellArray[row][col], jumpCount, direction, cellArray[rowMoved][col]);
                         }
@@ -316,6 +331,7 @@ window.onload = () => {
                                 rowMoved++;
                                 movement++;
                                 jumpCount++;
+                                merged++;
                             }
                             animate(cellArray[row][col], jumpCount, direction, cellArray[rowMoved][col]);
                         }
@@ -339,6 +355,7 @@ window.onload = () => {
                                 colMoved--;
                                 movement++;
                                 jumpCount++;
+                                merged++;
                             }
                             animate(cellArray[row][col], jumpCount, direction, cellArray[row][colMoved]);
                         }
@@ -362,6 +379,7 @@ window.onload = () => {
                                 colMoved++;
                                 movement++;
                                 jumpCount++;
+                                merged++;
                             }
                             animate(cellArray[row][col], jumpCount, direction, cellArray[row][colMoved]);
                         }
@@ -371,8 +389,10 @@ window.onload = () => {
             default:
                 break;
         }
+        // plays merge sound once if merged
+        if (merged > 0) { sound.mergeSound.play(); }
         // timeout finishes after animation
-        setTimeout(() => {if (movement > 0) { randomCell(); }}, 55); // spawns a random cell if a movement happened
+        setTimeout(() => { if (movement > 0) { randomCell(); } }, 195); // spawns a random cell if a movement happened
         resetMerge();
     }
 
@@ -438,6 +458,7 @@ window.onload = () => {
     window.addEventListener("keydown", (event) => {
         if (directionMap.has(event.code) && !moving) { // turns off movement when animation is happening
             event.preventDefault();
+            sound.moveSound.play();
             directionMap.get(event.code)();
         }
         win();
