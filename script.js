@@ -18,6 +18,20 @@ function random(int) { // generates random number based on parameter
     return Math.floor(Math.random() * int);
 }
 
+var colorMap = new Map();
+        colorMap.set(0, "#515354");
+        colorMap.set(2, "#4c545c");
+        colorMap.set(4, "#666b70");
+        colorMap.set(8, "#2e423a");
+        colorMap.set(16, "#38805d");
+        colorMap.set(32, "#2d9161");
+        colorMap.set(64, "#0fa65d");
+        colorMap.set(128, "#6d869c");
+        colorMap.set(256, "#52799c");
+        colorMap.set(512, "#4176a3");
+        colorMap.set(1024, "#2d76b5");
+        colorMap.set(2048, "#0e84eb");
+        
 class Cell {
     // 2d
     row;
@@ -35,19 +49,6 @@ class Cell {
         this.merge = true;
     }
     color() {
-        var colorMap = new Map();
-        colorMap.set(0, "#515354");
-        colorMap.set(2, "#4c545c");
-        colorMap.set(4, "#666b70");
-        colorMap.set(8, "#2e423a");
-        colorMap.set(16, "#38805d");
-        colorMap.set(32, "#2d9161");
-        colorMap.set(64, "#0fa65d");
-        colorMap.set(128, "#6d869c");
-        colorMap.set(256, "#52799c");
-        colorMap.set(512, "#4176a3");
-        colorMap.set(1024, "#2d76b5");
-        colorMap.set(2048, "#0e84eb");
         if (colorMap.has(this.value)) {
             return colorMap.get(this.value);
         } else {
